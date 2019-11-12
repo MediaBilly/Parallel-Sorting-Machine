@@ -5,8 +5,8 @@ OBJS = coordinator.o coach.o sorter_quicksort.o sorter_heapsort.o minheap.o reco
 
 all:$(TARGETS)
 
-mysort:coordinator.o
-	$(CC) $(FLAGS) -o mysort coordinator.o
+mysort:coordinator.o record.o
+	$(CC) $(FLAGS) -o mysort coordinator.o record.o
 
 coach:coach.o record.o
 	$(CC) $(FLAGS) -o coach coach.o record.o

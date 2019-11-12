@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "../headers/record.h"
 
 int main(int argc, char const *argv[])
 {
@@ -30,6 +31,19 @@ int main(int argc, char const *argv[])
     }
     // Calculate coaches
     int coaches = (argc - 3)/2;
+    // Open file to get amount of records
+    FILE *inputfile;
+    if ((inputfile = fopen(argv[2],"r")) == NULL) {
+        fprintf(stderr,"File %s error\n",argv[2]);
+        exit(1);
+    }
+    // Calculate amount of records
+    fseek(inputfile,0L,SEEK_END);
+    long int bytes = ftell(inputfile);
+    char records[10];
+    sprintf(records,"%d",bytes/Record_Size());
+    // Close input file
+    fclose(inputfile);
     // Create coaches
     //int fd[coaches][2];
     for(i = 0;i < coaches;i++) {
@@ -51,7 +65,7 @@ int main(int argc, char const *argv[])
             else if (pid == 0) {
                 char coachId[2];
                 sprintf(coachId,"%d",i);
-                execl("./coach","coach",coachId,argv[2],argv[2*i + 3],argv[2*i + 4],NULL);
+                execl("./coach","coach",coachId,argv[2],records,argv[2*i + 3],argv[2*i + 4],NULL);
                 perror("Exec failed");
                 exit(1);
             }

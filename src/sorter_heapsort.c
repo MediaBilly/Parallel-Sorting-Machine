@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "../headers/minheap.h"
 #include "../headers/record.h"
 
@@ -30,11 +33,16 @@ int main(int argc, char const *argv[])
         MinHeap_Insert(heap,rec);
     }
     fclose(input);
+    int fd = open(argv[5],O_WRONLY);
     for (i = 0;i <= lastRecord - firstRecord;i++) {
         rec = MinHeap_ExtractMin(heap);
-        Record_Print(rec);
+        //Record_Print(rec);
+        write(fd,rec,Record_Size());
         Record_Destroy(&rec);
     }
+    close(fd);
     MinHeap_Destroy(&heap);
+    // Send SIGUSR2 to the parent
+    kill(getppid(),SIGUSR2);
     return EXIT_SUCCESS;
 }

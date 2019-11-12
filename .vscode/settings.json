@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "minheap.h": "c"
+        "minheap.h": "c",
+        "record.h": "c"
     }
 }

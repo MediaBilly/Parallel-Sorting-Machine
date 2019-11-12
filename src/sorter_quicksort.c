@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "../headers/record.h"
 
 int partition(Record *records,int left,int right,int field)
@@ -35,8 +38,8 @@ void quicksort(Record *records,int left,int right,int field)
 
 int main(int argc, char const *argv[])
 {
-    // Usage: ./quicksort <inputfile> <first_record> <last_record> <column>
-    if (argc < 5)
+    // Usage: ./quicksort <inputfile> <first_record> <last_record> <column> <output_file>
+    if (argc < 6)
         exit(1);
     FILE *input;
     if ((input = fopen(argv[1],"r")) == NULL) {
@@ -61,10 +64,15 @@ int main(int argc, char const *argv[])
     }
     fclose(input);
     quicksort(records,0,lastRecord - firstRecord,field);
+    int fd = open(argv[5],O_WRONLY);
     for (i = 0;i <= lastRecord - firstRecord;i++) {
-        Record_Print(records[i]);
+        //Record_Print(records[i]);
+        write(fd,records[i],Record_Size());
         Record_Destroy(records + i);
     }
+    close(fd);
     free(records);
+    // Send SIGUSR2 to the parent
+    kill(getppid(),SIGUSR2);
     return EXIT_SUCCESS;
 }
