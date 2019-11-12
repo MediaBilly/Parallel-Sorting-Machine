@@ -50,7 +50,7 @@ int main(int argc, char const *argv[])
     // Create sorters
     int i;
     // Pipes for each sorter
-    int start = 1,div = power(2,id <= 1 ? id : id + 1),end = CEIL(records,div),curSorter = 1,fence = id <= 2 ? sorters : sorters/2;
+    int start = 1,div = power(2,id <= 1 ? id : id + 1),end = CEIL(records,div),curSorter = 1,fence = id < 2 ? sorters : sorters/2;
     char fifo[sorters][20];
     int numRecords[sorters];
     for (i = 0; i < sorters; i++) {
@@ -96,7 +96,7 @@ int main(int argc, char const *argv[])
                 // Calculate new record dividers for next sorter
                 if (curSorter == fence) {
                     div /= 2;
-                    if (id <= 2)
+                    if (id == 2 || (id > 2 && fence != 2))
                         fence /= 2;
                     curSorter = 1;
                 }
