@@ -41,7 +41,7 @@ int main(int argc, char const *argv[])
     fseek(inputfile,0L,SEEK_END);
     long int bytes = ftell(inputfile);
     char records[10];
-    sprintf(records,"%d",bytes/Record_Size());
+    sprintf(records,"%ld",bytes/Record_Size());
     // Close input file
     fclose(inputfile);
     // Create coaches

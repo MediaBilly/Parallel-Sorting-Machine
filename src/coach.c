@@ -47,6 +47,8 @@ int main(int argc, char const *argv[])
     int records = atoi(argv[3]);
     // Calculate amount of sorters
     int sorters = power(2,id);
+    // Get sorting orderField
+    int field = atoi(argv[5]);
     // Create sorters
     int i;
     // Pipes for each sorter
@@ -76,13 +78,13 @@ int main(int argc, char const *argv[])
             sprintf(lastRecord,"%d",end);
             if (!strcmp(argv[4],"-q")) {
                 printf("\tCoach [%d] with id %d sorting %s's column %s from record %s to %s using quicksort.\n",getpid(),id,argv[2],argv[5],firstRecord,lastRecord);
-                execl("./sorter_quicksort","sorter_quicksort",argv[2],firstRecord,lastRecord,argv[4],fifo[i],NULL);
+                execl("./sorter_quicksort","sorter_quicksort",argv[2],firstRecord,lastRecord,argv[5],fifo[i],NULL);
                 perror("Exec failed");
                 exit(1);
             }
             else if (!strcmp(argv[4],"-h")) {
                 printf("\tCoach [%d] with id %d sorting %s's column %s from record %s to %s using heapsort.\n",getpid(),id,argv[2],argv[5],firstRecord,lastRecord);
-                execl("./sorter_heapsort","sorter_heapsort",argv[2],firstRecord,lastRecord,argv[4],fifo[i],NULL);
+                execl("./sorter_heapsort","sorter_heapsort",argv[2],firstRecord,lastRecord,argv[5],fifo[i],NULL);
                 perror("Exec failed");
                 exit(1);
             } else {
@@ -107,17 +109,18 @@ int main(int argc, char const *argv[])
             }
         }
     }
-    // Print records sorted from all sorters
+    // Save sorted records from all sorters
+    Record *sortedRecords[sorters];
     char buf[Record_Size()];
-    Record rec;
     int j,fd;
+    int index[sorters];
     for(i = 0;i < sorters;i++) {
+        index[i] = 0;
+        sortedRecords[i] = malloc(numRecords[i]*sizeof(Record));
         fd = open(fifo[i],O_RDONLY);
         for(j = 0;j < numRecords[i];j++) {
             read(fd,buf,Record_Size());
-            Record_Init(&rec,buf);
-            //Record_Print(rec);
-            Record_Destroy(&rec);
+            Record_Init(&sortedRecords[i][j],buf);
         }
         close(fd);
         unlink(fifo[i]);
@@ -131,6 +134,38 @@ int main(int argc, char const *argv[])
             exit(1);
         }
         printf("\tSorter child with pid %d just finished execution with status %d\n",exited_pid,exit_status);
+    }
+    // Merge and print final records
+    int done = 0,minindexindex;
+    Record minrec;
+    char outFileName[50];
+    sprintf(outFileName,"%s_%s",argv[2],argv[5]);
+    FILE *outFile = fopen(outFileName,"w");
+    while (!done) {
+      done = 1;
+      minrec = NULL;
+      minindexindex = 0;
+      for (i = 0;i < sorters;i++) {
+        if (index[i] < numRecords[i]) {
+          done = 0;
+          if (minrec == NULL || Record_Compare(sortedRecords[i][index[i]],minrec,field)) {
+            minrec = sortedRecords[i][index[i]];
+            minindexindex = i;
+          }
+        }
+      }
+      if (!done) {
+        Record_Print(minrec,outFile);
+        index[minindexindex]++;
+      }
+    }
+    fclose(outFile);
+    // Destroy memory allocated for records
+    for (i = 0;i < sorters;i++) {
+      int j;
+      for(j = 0;j < numRecords[i];j++)
+        Record_Destroy(&sortedRecords[i][j]);
+      free(sortedRecords[i]);
     }
     printf("\t#Total SIGUSR2 signals at coach with pid [%d]:%d\n",getpid(),sorterSignals);
     return EXIT_SUCCESS;
