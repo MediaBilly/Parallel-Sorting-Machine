@@ -1,13 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/times.h>
 #include "../headers/minheap.h"
 #include "../headers/record.h"
 
 int main(int argc, char const *argv[])
 {
+    // Usage: ./sorter_heapsort <inputfile> <first_record> <last_record> <column> <output_file>
+    double t1, t2;
+    struct tms tb1, tb2;
+    double ticspersec;
+    ticspersec = (double)sysconf(_SC_CLK_TCK);
+    t1 = (double)times(&tb1);
     if (argc < 5)
         return 0;
     // Read arguments
@@ -36,10 +44,16 @@ int main(int argc, char const *argv[])
     int fd = open(argv[5],O_WRONLY);
     for (i = 0;i <= lastRecord - firstRecord;i++) {
         rec = MinHeap_ExtractMin(heap);
-        //Record_Print(rec);
         write(fd,rec,Record_Size());
         Record_Destroy(&rec);
     }
+    // Send sorting time
+    t2 = (double)times(&tb2);
+    double sortTime = (t2 - t1)/ticspersec;
+    char sTime[sizeof(double)];
+    //sprintf(sTime,"%.2lf",sortTime);
+    memcpy(sTime,&sortTime,sizeof(double));
+    write(fd,sTime,sizeof(double));
     close(fd);
     MinHeap_Destroy(&heap);
     // Send SIGUSR2 to the parent

@@ -49,7 +49,7 @@ int Record_Compare(Record r1,Record r2,int field) {
 
 void Record_Print(Record rec,FILE *output) {
     if (rec != NULL && output != NULL)
-        fprintf(output,"\t\t%ld %s %s %s %d %s %s %f\n",rec->registrationNumber,rec->firstname,rec->lastname,rec->street,rec->streetNum,rec->city,rec->zip,rec->salary);
+        fprintf(output,"%ld %s %s %s %d %s %s %f\n",rec->registrationNumber,rec->firstname,rec->lastname,rec->street,rec->streetNum,rec->city,rec->zip,rec->salary);
 }
 
 int Record_Destroy(Record *rec) {

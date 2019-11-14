@@ -2,12 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/times.h>
+#include <limits.h>
 #include "../headers/record.h"
 
 int main(int argc, char const *argv[])
 {
+    double t1, t2;
+    struct tms tb1, tb2;
+    double ticspersec;
+    ticspersec = (double)sysconf(_SC_CLK_TCK);
+    t1 = (double)times(&tb1);
     //Read parameters
     // Check for correct amount of arguments
     if (argc < 5) {
@@ -45,15 +54,16 @@ int main(int argc, char const *argv[])
     // Close input file
     fclose(inputfile);
     // Create coaches
-    //int fd[coaches][2];
+    char fifo[coaches][8];
     for(i = 0;i < coaches;i++) {
         // Read sorting method
         if (!strcmp(argv[2*i + 3],"-h") || !strcmp(argv[2*i + 3],"-q")) {
-            /*// Create pipe for each coach
-            if (pipe(fd[i]) < 0) {
-                perror("Pipe creation error");
+            // Create named pipe for each coach
+            sprintf(fifo[i],"coach%d",i);
+            if (mkfifo(fifo[i],0666) < 0) {
+                perror("Fifo creation error");
                 exit(1);
-            }*/
+            }
             // Create coach child process
             pid_t pid;
             // Fork error
@@ -65,13 +75,13 @@ int main(int argc, char const *argv[])
             else if (pid == 0) {
                 char coachId[2];
                 sprintf(coachId,"%d",i);
-                execl("./coach","coach",coachId,argv[2],records,argv[2*i + 3],argv[2*i + 4],NULL);
+                execl("./coach","coach",coachId,argv[2],records,argv[2*i + 3],argv[2*i + 4],fifo[i],NULL);
                 perror("Exec failed");
                 exit(1);
             }
             // Parent
             else {
-                printf("Created coach %d with pid %d.\n",i,pid);
+                //printf("Created coach %d with pid %d.\n",i,pid);
             }
         }
         else {
@@ -79,6 +89,31 @@ int main(int argc, char const *argv[])
             exit(1);
         }
     }
+    int fd;
+    double timing,min_time = ULLONG_MAX,max_time = 0,avg_time = 0;
+    char buf[4*sizeof(double) + sizeof(int)];
+    int signals[coaches];
+    // Print timing for each coach
+    for (i = 0; i < coaches; i++) {
+        printf("Coach %d sorter times:\n",i);
+        fd = open(fifo[i],O_RDONLY);
+        read(fd,buf,4*sizeof(double) + sizeof(int));
+        memcpy(&timing,buf,sizeof(double));
+        printf("\tMin Sorter Time:%.2lf\n",timing);
+        memcpy(&timing,buf + sizeof(double),sizeof(double));
+        printf("\tMax Sorter Time:%.2lf\n",timing);
+        memcpy(&timing,buf + 2*sizeof(double),sizeof(double));
+        printf("\tAvg Sorter Time:%.2lf\n",timing);
+        memcpy(&timing,buf + 3*sizeof(double),sizeof(double));
+        avg_time += timing;
+        if (timing > max_time)
+            max_time = timing;
+        if (timing < min_time)
+            min_time = timing;
+        memcpy(signals + i,buf + 4*sizeof(double),sizeof(int));
+        close(fd);
+    }
+    avg_time /= coaches;
     // Wait for coaches to finish execution
     for(i = 0;i < coaches;i++) {
         int exit_status;
@@ -87,7 +122,13 @@ int main(int argc, char const *argv[])
             perror("Wait failed");
             exit(1);
         }
-        printf("Child with pid %d just finished exexution with status %d\n",exited_pid,exit_status);
+        unlink(fifo[i]);
     }
+    printf("\nCoach times:\n\tMin time:%.2lf\n\tMax time:%.2lf\n\tAvg time:%.2lf\n",min_time,max_time,avg_time);
+    t2 = (double)times(&tb2);
+    double turnaround_time = (t2 - t1)/ticspersec;
+    printf("\nTurnaround Time:%.2lf\n\n",turnaround_time);
+    for (i = 0; i < coaches; i++)
+        printf("Coach %d SIGUSR2 signals:%d\n",i,signals[i]);
     return EXIT_SUCCESS;
 }

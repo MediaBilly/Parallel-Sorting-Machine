@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/times.h>
 #include "../headers/record.h"
 
 int partition(Record *records,int left,int right,int field)
@@ -38,7 +40,12 @@ void quicksort(Record *records,int left,int right,int field)
 
 int main(int argc, char const *argv[])
 {
-    // Usage: ./quicksort <inputfile> <first_record> <last_record> <column> <output_file>
+    // Usage: ./sorter_quicksort <inputfile> <first_record> <last_record> <column> <output_file>
+    double t1, t2;
+    struct tms tb1, tb2;
+    double ticspersec;
+    ticspersec = (double)sysconf(_SC_CLK_TCK);
+    t1 = (double)times(&tb1);
     if (argc < 6)
         exit(1);
     FILE *input;
@@ -70,6 +77,13 @@ int main(int argc, char const *argv[])
         write(fd,records[i],Record_Size());
         Record_Destroy(records + i);
     }
+    // Send sorting time
+    t2 = (double)times(&tb2);
+    double sortTime = (t2 - t1)/ticspersec;
+    char sTime[sizeof(double)];
+    //sprintf(sTime,"%.2lf",sortTime);
+    memcpy(sTime,&sortTime,sizeof(double));
+    write(fd,sTime,sizeof(double));
     close(fd);
     free(records);
     // Send SIGUSR2 to the parent
