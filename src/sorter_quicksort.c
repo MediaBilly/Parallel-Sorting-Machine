@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/times.h>
 #include "../headers/record.h"
+#include "../headers/utilities.h"
 
 int partition(Record *records,int left,int right,int field)
 {
@@ -70,13 +71,25 @@ int main(int argc, char const *argv[])
         Record_Init(records + i,buf);
     }
     fclose(input);
+    // Sort the records
     quicksort(records,0,lastRecord - firstRecord,field);
+    // Send the sorted records to the output file(named pipe)
+    int recordsPerBuf = PIPE_SIZE/Record_Size();
+    char recBuf[PIPE_SIZE];
     int fd = open(argv[5],O_WRONLY);
+    int n = 1;
     for (i = 0;i <= lastRecord - firstRecord;i++) {
-        //Record_Print(records[i]);
-        write(fd,records[i],Record_Size());
+        if (n == recordsPerBuf) {
+            write(fd,recBuf,n * Record_Size());
+            n = 1;
+        } else {
+            memcpy(recBuf + (n - 1)*Record_Size(),records[i],Record_Size());
+            n++;
+        }
         Record_Destroy(records + i);
     }
+    if (n > 0)
+        write(fd,recBuf,n * Record_Size());
     // Send sorting time
     t2 = (double)times(&tb2);
     double sortTime = (t2 - t1)/ticspersec;

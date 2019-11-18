@@ -84,13 +84,11 @@ int main(int argc, char const *argv[])
             sprintf(firstRecord,"%d",start);
             sprintf(lastRecord,"%d",end);
             if (!strcmp(argv[4],"-q")) {
-                //printf("\tCoach [%d] with id %d sorting %s's column %s from record %s to %s using quicksort.\n",getpid(),id,argv[2],argv[5],firstRecord,lastRecord);
                 execl("./sorter_quicksort","sorter_quicksort",argv[2],firstRecord,lastRecord,argv[5],fifo[i],NULL);
                 perror("Exec failed");
                 exit(1);
             }
             else if (!strcmp(argv[4],"-h")) {
-                //printf("\tCoach [%d] with id %d sorting %s's column %s from record %s to %s using heapsort.\n",getpid(),id,argv[2],argv[5],firstRecord,lastRecord);
                 execl("./sorter_heapsort","sorter_heapsort",argv[2],firstRecord,lastRecord,argv[5],fifo[i],NULL);
                 perror("Exec failed");
                 exit(1);

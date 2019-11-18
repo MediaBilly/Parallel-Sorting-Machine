@@ -10,6 +10,9 @@
 #include <limits.h>
 #include "../headers/record.h"
 
+char columns[8];
+char coachOk[4];
+
 int main(int argc, char const *argv[])
 {
     double t1, t2;
@@ -17,7 +20,7 @@ int main(int argc, char const *argv[])
     double ticspersec;
     ticspersec = (double)sysconf(_SC_CLK_TCK);
     t1 = (double)times(&tb1);
-    //Read parameters
+    // Read parameters
     // Check for correct amount of arguments
     if (argc < 5) {
         fprintf(stderr,"Not enough arguments\n");
@@ -55,9 +58,24 @@ int main(int argc, char const *argv[])
     fclose(inputfile);
     // Create coaches
     char fifo[coaches][8];
+    int column,failedCoaches = 0;
     for(i = 0;i < coaches;i++) {
         // Read sorting method
         if (!strcmp(argv[2*i + 3],"-h") || !strcmp(argv[2*i + 3],"-q")) {
+            // Check if column was already selected.If so, ignore it
+            column = atoi(argv[2*i + 4]);
+            if (columns[column - 1]) {
+                printf("Column %d already selected.Ignoring it!\n",column);
+                failedCoaches++;
+                continue;
+            }
+            // Check if column is in range.If not, ignore it
+            if (column <= 0 || column > 8) {
+                printf("Column %d out of range.Ignoring it!\n",column);
+                failedCoaches++;
+                continue;
+            }
+            columns[column - 1] = coachOk[i] = 1;
             // Create named pipe for each coach
             sprintf(fifo[i],"coach%d",i);
             if (mkfifo(fifo[i],0666) < 0) {
@@ -93,8 +111,11 @@ int main(int argc, char const *argv[])
     double timing,min_time = ULLONG_MAX,max_time = 0,avg_time = 0;
     char buf[4*sizeof(double) + sizeof(int)];
     int signals[coaches];
+    memset(signals,0,sizeof(signals));
     // Print timing for each coach
     for (i = 0; i < coaches; i++) {
+        if (!coachOk[i])
+            continue;
         printf("Coach %d sorter times:\n",i);
         fd = open(fifo[i],O_RDONLY);
         read(fd,buf,4*sizeof(double) + sizeof(int));
@@ -103,7 +124,7 @@ int main(int argc, char const *argv[])
         memcpy(&timing,buf + sizeof(double),sizeof(double));
         printf("\tMax Sorter Time:%.2lf\n",timing);
         memcpy(&timing,buf + 2*sizeof(double),sizeof(double));
-        printf("\tAvg Sorter Time:%.2lf\n",timing);
+        printf("\tAverage Sorter Time:%.2lf\n",timing);
         memcpy(&timing,buf + 3*sizeof(double),sizeof(double));
         avg_time += timing;
         if (timing > max_time)
@@ -113,9 +134,11 @@ int main(int argc, char const *argv[])
         memcpy(signals + i,buf + 4*sizeof(double),sizeof(int));
         close(fd);
     }
-    avg_time /= coaches;
+    avg_time /= (coaches - failedCoaches);
     // Wait for coaches to finish execution
     for(i = 0;i < coaches;i++) {
+        if (!coachOk[i])
+            continue;
         int exit_status;
         pid_t exited_pid;
         if ((exited_pid = wait(&exit_status)) == -1) {
@@ -124,7 +147,7 @@ int main(int argc, char const *argv[])
         }
         unlink(fifo[i]);
     }
-    printf("\nCoach times:\n\tMin time:%.2lf\n\tMax time:%.2lf\n\tAvg time:%.2lf\n",min_time,max_time,avg_time);
+    printf("\nCoach times:\n\tMin time:%.2lf\n\tMax time:%.2lf\n\tAverage time:%.2lf\n",min_time,max_time,avg_time);
     t2 = (double)times(&tb2);
     double turnaround_time = (t2 - t1)/ticspersec;
     printf("\nTurnaround Time:%.2lf\n\n",turnaround_time);
