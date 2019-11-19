@@ -97,10 +97,6 @@ int main(int argc, char const *argv[])
                 perror("Exec failed");
                 exit(1);
             }
-            // Parent
-            else {
-                //printf("Created coach %d with pid %d.\n",i,pid);
-            }
         }
         else {
             fprintf(stderr,"Usage: ./mysort -f inputfile -h|q columnid [-h|q columnid]\n");
