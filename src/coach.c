@@ -13,9 +13,6 @@
 
 #define CEIL(a,b) (((a)+(b)-1)/(b))
 
-#define READ 0
-#define WRITE 1
-
 int sorterSignals = 0;
 
 void signal_handler(int signum) {
