@@ -153,7 +153,7 @@ int main(int argc, char const *argv[])
     int done = 0,minindexindex;
     Record minrec;
     char outFileName[50];
-    sprintf(outFileName,"%s_%s.txt",argv[2],argv[5]);
+    sprintf(outFileName,"%s#%s.txt",argv[2],argv[5]);
     FILE *outFile = fopen(outFileName,"w");
     while (!done) {
         done = 1;
