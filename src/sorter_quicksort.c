@@ -77,15 +77,14 @@ int main(int argc, char const *argv[])
     int recordsPerBuf = PIPE_SIZE/Record_Size();
     char recBuf[PIPE_SIZE];
     int fd = open(argv[5],O_WRONLY);
-    int n = 1;
+    int n = 0;
     for (i = 0;i <= lastRecord - firstRecord;i++) {
         if (n == recordsPerBuf) {
             write(fd,recBuf,n * Record_Size());
-            n = 1;
-        } else {
-            memcpy(recBuf + (n - 1)*Record_Size(),records[i],Record_Size());
-            n++;
+            n = 0;
         }
+        memcpy(recBuf + n*Record_Size(),records[i],Record_Size());
+        n++;
         Record_Destroy(records + i);
     }
     if (n > 0)
