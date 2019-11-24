@@ -47,6 +47,6 @@ make
 make clean
 ```
 
-## Note 
+### Note 
 This is a project for the operating systems course of the Department of Informatics and Telecommunications at the National and Kapodistrian University
 of Athens.
